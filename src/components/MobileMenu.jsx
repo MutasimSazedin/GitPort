@@ -1,72 +1,60 @@
 import { useEffect } from "react";
 
-export const MobileMenu = ({ menuOpen, setMenuOpen }) => {
+export const MobileMenu = ({
+  navItems,
+  isOpen,
+  onAdminClick,
+  onClose,
+  onThemeToggle,
+  theme,
+}) => {
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   return (
-    <div
-      className={`fixed top-0 left-0 w-full bg-[rgba(10,10,10,0.8)] z-40 flex flex-col items-center justify-center
-                     transition-all duration-300 ease-in-out
-
-                     ${
-                       menuOpen
-                         ? "h-screen opacity-100 pointer-events-auto"
-                         : "h-0 opacity-0 pointer-events-none"
-                     }
-                   `}
-    >
-      <button
-        onClick={() => setMenuOpen(false)}
-        className="absolute top-6 right-6 text-white text-3xl focus:outline-none cursor-pointer"
-        aria-label="Close Menu"
-      >
-        &times;
-      </button>
-
-      <a
-        href="#home"
-        onClick={() => setMenuOpen(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-                    ${
-                      menuOpen
-                        ? "opacity-100 translate-y-0"
-                        : "opacity-0 translate-y-5"
-                    }        
-            `}
-      >
-        Home
-      </a>
-      <a
-        href="#about"
-        onClick={() => setMenuOpen(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-            ${
-              menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-            }        
-    `}
-      >
-        About
-      </a>
-      <a
-        href="#projects"
-        onClick={() => setMenuOpen(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-            ${
-              menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-            }        
-    `}
-      >
-        Projects
-      </a>
-      <a
-        href="#contact"
-        onClick={() => setMenuOpen(false)}
-        className={`text-2xl font-semibold text-white my-4 transform transition-transform duration-300
-            ${
-              menuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-5"
-            }        
-    `}
-      >
-        Contact
-      </a>
+    <div className={`mobile-menu ${isOpen ? "is-open" : ""}`}>
+      <div className="mobile-menu-panel">
+        <button
+          aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          className={`theme-toggle mobile-theme-toggle ${
+            theme === "dark" ? "is-dark" : "is-light"
+          }`}
+          type="button"
+          onClick={onThemeToggle}
+        >
+          <span className="theme-toggle-copy">
+            <span className="theme-toggle-label">Theme</span>
+            <span className="theme-toggle-value">{theme}</span>
+          </span>
+            <span className="theme-toggle-knob" aria-hidden="true" />
+        </button>
+        <button
+          className="button-ghost admin-nav-button mobile-admin-button"
+          type="button"
+          onClick={onAdminClick}
+        >
+          Admin
+        </button>
+        {navItems.map((item) => (
+          <a
+            className="mobile-link"
+            href={item.href}
+            key={item.href}
+            onClick={onClose}
+          >
+            <span>{item.label}</span>
+            <span>+</span>
+          </a>
+        ))}
+        <button className="button-secondary" type="button" onClick={onClose}>
+          Close menu
+        </button>
+      </div>
     </div>
   );
 };

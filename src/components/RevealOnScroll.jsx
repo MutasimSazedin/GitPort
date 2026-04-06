@@ -1,13 +1,14 @@
 import { useEffect, useRef } from "react";
 
-export const RevealOnScroll = ({ children }) => {
+export const RevealOnScroll = ({ children, className = "", delay = 0 }) => {
   const ref = useRef(null);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) {
+        if (entry.isIntersecting && ref.current) {
           ref.current.classList.add("visible");
+          observer.unobserve(ref.current);
         }
       },
       { threshold: 0.2, rootMargin: "0px 0px -50px 0px" }
@@ -19,7 +20,11 @@ export const RevealOnScroll = ({ children }) => {
   });
 
   return (
-    <div ref={ref} className="reveal">
+    <div
+      ref={ref}
+      className={`reveal ${className}`.trim()}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
       {children}
     </div>
   );
