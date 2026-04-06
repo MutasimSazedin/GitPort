@@ -2403,6 +2403,47 @@
   }
 }
 
+.site-nav {
+  left: 1rem;
+  right: 1rem;
+  width: auto;
+  transform: none;
+  display: flex;
+  justify-content: center;
+}
+
+.site-nav-frame {
+  width: min(100%, var(--max-width));
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.site-brand {
+  min-width: 0;
+  padding-right: 1rem;
+}
+
+.site-brand strong {
+  white-space: nowrap;
+}
+
+.nav-links {
+  min-width: 0;
+  justify-content: flex-end;
+  gap: clamp(0.85rem, 1.5vw, 1.3rem);
+}
+
+.nav-utility {
+  justify-self: end;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.admin-nav-button {
+  white-space: nowrap;
+}
+
 .page-shell.is-intro-active .site-nav,
 .page-shell.is-intro-active .content-stack,
 .page-shell.is-intro-active .site-footer {
@@ -2743,6 +2784,220 @@
   .loading-type-line {
     min-height: 3.8rem;
     font-size: clamp(1.7rem, 9vw, 2.5rem);
+  }
+}
+
+@media (max-width: 1320px) {
+  .nav-link {
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+  }
+
+  .theme-toggle-copy {
+    display: none;
+  }
+
+  .theme-toggle {
+    padding-left: 0.35rem;
+  }
+}
+
+@media (max-width: 820px) {
+  .site-nav {
+    top: calc(env(safe-area-inset-top, 0px) + 0.7rem);
+    left: 0.7rem;
+    right: 0.7rem;
+  }
+
+  .site-nav-frame {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    padding: 0.72rem 0.8rem;
+    border-radius: 24px;
+  }
+
+  .site-brand {
+    padding-right: 0;
+  }
+
+  .site-brand span {
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+
+  .site-brand strong {
+    font-size: 0.96rem;
+    white-space: normal;
+    line-height: 1.08;
+  }
+
+  .nav-utility {
+    justify-content: flex-end;
+  }
+
+  .nav-utility .theme-toggle {
+    display: none;
+  }
+
+  .menu-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.55rem;
+    height: 2.55rem;
+    min-width: 2.55rem;
+  }
+
+  .mobile-menu {
+    padding: calc(env(safe-area-inset-top, 0px) + 5.4rem) 0.75rem 1rem;
+  }
+
+  .mobile-menu-panel {
+    gap: 0.85rem;
+    padding: 1rem;
+    border-radius: 24px;
+  }
+
+  .mobile-link {
+    padding: 0.82rem 0.9rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .section-shell {
+    width: calc(100% - 1.25rem);
+    padding: 3.25rem 0;
+  }
+
+  .hero-section {
+    padding-top: 2.9rem;
+  }
+
+  .hero-layout {
+    gap: 1.1rem;
+  }
+
+  .hero-name {
+    font-size: clamp(2.15rem, 12.5vw, 2.95rem);
+  }
+
+  .hero-role-line {
+    font-size: 0.66rem;
+    line-height: 1.8;
+    letter-spacing: 0.11em;
+  }
+
+  .hero-description {
+    max-width: none;
+    font-size: 0.95rem;
+  }
+
+  .hero-chipline {
+    gap: 0.55rem;
+  }
+
+  .hero-signal {
+    padding: 0.82rem 0.88rem;
+  }
+
+  .hero-actions {
+    gap: 0.75rem;
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .stat-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .hero-console,
+  .achievement-toolbar,
+  .contact-card:first-child,
+  .contact-card:last-child,
+  .admin-card {
+    padding: 1.1rem;
+  }
+
+  .console-feed-row {
+    padding: 0.72rem 0.8rem;
+  }
+
+  .toolbar-summary {
+    width: 100%;
+  }
+
+  .filter-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .chip-button {
+    justify-content: center;
+  }
+
+  .contact-layout,
+  .admin-layout {
+    gap: 1rem;
+  }
+
+  .summary-card,
+  .management-list-item {
+    padding: 1rem;
+  }
+
+  .field-grid {
+    gap: 0.85rem;
+  }
+
+  .site-footer {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.6rem);
+  }
+}
+
+@media (max-width: 420px) {
+  .site-nav {
+    left: 0.55rem;
+    right: 0.55rem;
+  }
+
+  .site-nav-frame {
+    gap: 0.55rem;
+    padding: 0.66rem 0.72rem;
+    border-radius: 20px;
+  }
+
+  .site-brand strong {
+    font-size: 0.88rem;
+  }
+
+  .hero-name {
+    font-size: 2rem;
+  }
+
+  .hero-role-line {
+    font-size: 0.62rem;
+    letter-spacing: 0.09em;
+  }
+
+  .hero-stats,
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .loading-console {
+    width: min(calc(100% - 1rem), 100%);
+    padding: 1.05rem;
+  }
+
+  .loading-type-line {
+    min-height: 3.2rem;
+    font-size: clamp(1.45rem, 10.5vw, 2.1rem);
   }
 }
 

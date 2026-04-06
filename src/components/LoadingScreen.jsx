@@ -14,11 +14,11 @@ export const LoadingScreen = ({ onComplete, theme }) => {
     if (text.length < fullText.length) {
       typingTimeout = window.setTimeout(() => {
         setText(fullText.slice(0, text.length + 1));
-      }, text.length < 2 ? 140 : 95);
+      }, text.length < 2 ? 180 : 130);
     } else if (phase === "typing") {
       handoffTimeout = window.setTimeout(() => {
         setPhase("handoff");
-      }, 620);
+      }, 260);
     } else if (phase === "handoff") {
       finishTimeout = window.setTimeout(() => {
         onComplete();
