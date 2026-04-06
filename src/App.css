@@ -3001,6 +3001,124 @@
   }
 }
 
+@media (max-width: 900px) {
+  .hero-layout,
+  .admin-layout,
+  .contact-layout {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .hero-copy,
+  .hero-panel,
+  .contact-card,
+  .admin-card,
+  .summary-card {
+    min-width: 0;
+  }
+
+  .hero-signal-strip,
+  .hero-mini-board,
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-console-body {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .console-ring {
+    width: min(100%, 20rem);
+    margin: 0 auto;
+  }
+
+  .console-feed {
+    width: 100%;
+  }
+
+  .achievement-toolbar,
+  .toolbar-summary,
+  .hero-panel-head,
+  .panel-heading,
+  .admin-header,
+  .contact-head,
+  .site-footer {
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-section {
+    align-items: flex-start;
+  }
+
+  .hero-layout {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .hero-copy {
+    gap: 1rem;
+  }
+
+  .hero-signal-strip,
+  .hero-mini-board,
+  .hero-stats,
+  .filter-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions {
+    align-items: stretch;
+  }
+
+  .hero-panel,
+  .hero-console,
+  .achievement-toolbar,
+  .contact-card:first-child,
+  .contact-card:last-child,
+  .admin-card {
+    padding: 1rem;
+  }
+
+  .hero-console-body {
+    gap: 1rem;
+  }
+
+  .console-ring {
+    width: min(100%, 16.5rem);
+  }
+
+  .console-feed-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .section-shell {
+    width: calc(100% - 0.9rem);
+  }
+
+  .site-nav {
+    left: 0.45rem;
+    right: 0.45rem;
+  }
+
+  .site-nav-frame {
+    padding: 0.62rem 0.66rem;
+  }
+
+  .hero-name {
+    font-size: clamp(1.9rem, 12vw, 2.3rem);
+  }
+
+  .console-ring {
+    width: min(100%, 14.5rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .site-nav,
   .content-stack,
