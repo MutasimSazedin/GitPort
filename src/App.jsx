@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 import { Navbar } from "./components/Navbar";
 import { MobileMenu } from "./components/MobileMenu";
+import { LoadingScreen } from "./components/LoadingScreen";
 import { RevealOnScroll } from "./components/RevealOnScroll";
 import { SectionHeading } from "./components/SectionHeading";
 import { AchievementCard } from "./components/AchievementCard";
@@ -36,6 +37,7 @@ const getInitialTheme = () => {
 
 function App() {
   const [theme, setTheme] = useState(getInitialTheme);
+  const [showIntro, setShowIntro] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("All");
   const {
@@ -112,7 +114,16 @@ function App() {
   }, [theme]);
 
   return (
-    <div className="page-shell" data-theme={theme}>
+    <div
+      className={`page-shell ${showIntro ? "is-intro-active" : "is-ready"}`}
+      data-theme={theme}
+    >
+      {showIntro ? (
+        <LoadingScreen
+          onComplete={() => setShowIntro(false)}
+          theme={theme}
+        />
+      ) : null}
       <div className="background-grid" aria-hidden="true" />
       <div className="background-scanlines" aria-hidden="true" />
       <div className="background-orb orb-one" aria-hidden="true" />

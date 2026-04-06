@@ -1,35 +1,72 @@
 import { useEffect, useState } from "react";
 
-export const LoadingScreen = ({ onComplete }) => {
+const fullText = "<Hello World>";
+
+export const LoadingScreen = ({ onComplete, theme }) => {
   const [text, setText] = useState("");
-  const fullText = "<Hello World>";
+  const [phase, setPhase] = useState("typing");
 
   useEffect(() => {
-    let index = 0;
-    const interval = setInterval(() => {
-      setText(fullText.substring(0, index));
-      index++;
+    let typingTimeout;
+    let handoffTimeout;
+    let finishTimeout;
 
-      if (index > fullText.length) {
-        clearInterval(interval);
+    if (text.length < fullText.length) {
+      typingTimeout = window.setTimeout(() => {
+        setText(fullText.slice(0, text.length + 1));
+      }, text.length < 2 ? 140 : 95);
+    } else if (phase === "typing") {
+      handoffTimeout = window.setTimeout(() => {
+        setPhase("handoff");
+      }, 620);
+    } else if (phase === "handoff") {
+      finishTimeout = window.setTimeout(() => {
+        onComplete();
+      }, 760);
+    }
 
-        setTimeout(() => {
-          onComplete();
-        }, 1000);
-      }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [onComplete]);
+    return () => {
+      window.clearTimeout(typingTimeout);
+      window.clearTimeout(handoffTimeout);
+      window.clearTimeout(finishTimeout);
+    };
+  }, [onComplete, phase, text.length]);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black text-gray-100 flex flex-col items-center justify-center">
-      <div className="mb-4 text-4xl font-mono font-bold">
-        {text} <span className="animate-blink ml-1"> | </span>
-      </div>
+    <div
+      className={`loading-screen ${
+        phase === "handoff" ? "is-handoff" : ""
+      }`}
+      data-theme={theme}
+    >
+      <div className="loading-screen-grid" aria-hidden="true" />
+      <div className="loading-screen-orb orb-a" aria-hidden="true" />
+      <div className="loading-screen-orb orb-b" aria-hidden="true" />
 
-      <div className="w-[200px] h-[2px] bg-gray-800 rounded relative overflow-hidden">
-        <div className="w-[40%] h-full bg-blue-500 shadow-[0_0_15px_#3b82f6] animate-loading-bar"></div>
+      <div className="loading-console">
+        <div className="loading-console-ring" aria-hidden="true">
+          <div className="loading-console-ring-shell">
+            <div className="loading-console-ring-core" />
+          </div>
+        </div>
+
+        <div className="loading-copy">
+          <div className="loading-label-row">
+            <span className="loading-label">System boot</span>
+            <span className="loading-phase">
+              {phase === "handoff" ? "handoff" : "initializing"}
+            </span>
+          </div>
+
+          <div className="loading-type-line">
+            <span className="loading-type-text">{text}</span>
+            <span className="loading-cursor" aria-hidden="true" />
+          </div>
+
+          <div className="loading-progress" aria-hidden="true">
+            <div className="loading-progress-bar" />
+          </div>
+        </div>
       </div>
     </div>
   );
