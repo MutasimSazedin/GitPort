@@ -18,6 +18,7 @@ const navigationItems = [
   { label: "Certificates", href: "#certificates" },
   { label: "Contact", href: "#contact" },
 ];
+const profileImageSrc = `${import.meta.env.BASE_URL}profile_pic.jpeg`;
 
 const getInitialTheme = () => {
   if (typeof window === "undefined") {
@@ -174,6 +175,13 @@ function App() {
         >
           <RevealOnScroll className="hero-layout">
             <div className="hero-copy compact-hero-copy">
+              <div className="hero-profile">
+                <img
+                  alt="Mutasim Sazedin profile portrait"
+                  className="hero-profile-image"
+                  src={profileImageSrc}
+                />
+              </div>
               <div className="hero-chipline">
                 <span className="eyebrow">Portfolio</span>
                 <span className="status-pill subtle-pill">
