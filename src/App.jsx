@@ -57,10 +57,13 @@ function App() {
     signIn,
     signOutAdmin,
     addProject,
+    updateProject,
     removeProject,
     addAchievement,
+    updateAchievement,
     removeAchievement,
     addCertificate,
+    updateCertificate,
     removeCertificate,
   } = usePortfolioData();
 
@@ -452,10 +455,13 @@ function App() {
               isAdminConfigured={Boolean(adminEmail)}
               isConfigured={isConfigured}
               onAddProject={addProject}
+              onUpdateProject={updateProject}
               onDeleteProject={removeProject}
               onAddAchievement={addAchievement}
+              onUpdateAchievement={updateAchievement}
               onDeleteAchievement={removeAchievement}
               onAddCertificate={addCertificate}
+              onUpdateCertificate={updateCertificate}
               onDeleteCertificate={removeCertificate}
               onSignIn={signIn}
               onSignOut={signOutAdmin}

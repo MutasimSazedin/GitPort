@@ -10,7 +10,7 @@ const initialStatus = {
   message: "",
 };
 
-const initialProjectForm = {
+const createInitialProjectForm = (displayOrder = 1) => ({
   title: "",
   role: "",
   year: "",
@@ -19,8 +19,10 @@ const initialProjectForm = {
   impact: "",
   tools: "",
   link: "",
+  githubUrl: "",
   featured: true,
-};
+  displayOrder: String(Math.max(displayOrder, 1)),
+});
 
 const initialAchievementForm = {
   title: "",
@@ -42,17 +44,20 @@ const sections = [
   {
     id: "projects",
     label: "Projects",
-    description: "Add portfolio work and keep the main showcase current.",
+    description:
+      "Add, edit, remove, and reorder project cards. Serial numbers stay hidden on the public cards.",
   },
   {
     id: "achievements",
     label: "Achievements",
-    description: "Add hackathons, volunteering, leadership roles, and notable milestones.",
+    description:
+      "Manage the Beyond projects cards, including edits to titles, summaries, dates, and links.",
   },
   {
     id: "certificates",
     label: "Certificates",
-    description: "Add certifications, issuers, years, and optional verification links.",
+    description:
+      "Add and edit certifications, issuers, years, credential IDs, and verification links.",
   },
 ];
 
@@ -68,6 +73,14 @@ const statusClassName = (status) => {
   return "admin-status";
 };
 
+const getProjectDisplayOrder = (project, projects) => {
+  if (Number.isInteger(project.displayOrder) && project.displayOrder > 0) {
+    return project.displayOrder;
+  }
+
+  return projects.findIndex((entry) => entry.id === project.id) + 1;
+};
+
 export const AdminPanel = ({
   projects,
   achievements,
@@ -77,9 +90,12 @@ export const AdminPanel = ({
   isConfigured,
   isAdminConfigured,
   onAddProject,
+  onUpdateProject,
   onDeleteProject,
   onAddAchievement,
+  onUpdateAchievement,
   onAddCertificate,
+  onUpdateCertificate,
   onDeleteAchievement,
   onDeleteCertificate,
   onSignIn,
@@ -88,24 +104,41 @@ export const AdminPanel = ({
 }) => {
   const [credentials, setCredentials] = useState(initialCredentials);
   const [activeSection, setActiveSection] = useState("projects");
-  const [projectForm, setProjectForm] = useState(initialProjectForm);
+  const [projectForm, setProjectForm] = useState(() =>
+    createInitialProjectForm(projects.length + 1)
+  );
   const [achievementForm, setAchievementForm] = useState(initialAchievementForm);
   const [certificateForm, setCertificateForm] = useState(initialCertificateForm);
+  const [editingState, setEditingState] = useState(null);
   const [status, setStatus] = useState(initialStatus);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [removingId, setRemovingId] = useState("");
 
+  const resetSectionEditor = (
+    sectionId,
+    nextProjectDisplayOrder = projects.length + 1
+  ) => {
+    setEditingState(null);
+
+    if (sectionId === "projects") {
+      setProjectForm(createInitialProjectForm(nextProjectDisplayOrder));
+      return;
+    }
+
+    if (sectionId === "achievements") {
+      setAchievementForm(initialAchievementForm);
+      return;
+    }
+
+    setCertificateForm(initialCertificateForm);
+  };
+
   const handleFormChange = (setter) => ({ target }) => {
-    const { checked, files, name, type, value } = target;
+    const { checked, name, type, value } = target;
 
     setter((current) => ({
       ...current,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : type === "file"
-            ? files?.[0] ?? null
-            : value,
+      [name]: type === "checkbox" ? checked : value,
     }));
   };
 
@@ -142,20 +175,37 @@ export const AdminPanel = ({
 
   const handleProjectSubmit = async (event) => {
     event.preventDefault();
+    const editingProject =
+      editingState?.section === "projects"
+        ? projects.find((project) => project.id === editingState.entryId) ?? null
+        : null;
+
     setIsSubmitting(true);
-    setStatus({ type: "idle", message: "Uploading project..." });
+    setStatus({
+      type: "idle",
+      message: editingProject
+        ? "Saving project changes..."
+        : "Uploading project...",
+    });
 
     try {
-      await onAddProject(projectForm);
-      setProjectForm(initialProjectForm);
+      if (editingProject) {
+        await onUpdateProject(editingProject, projectForm);
+      } else {
+        await onAddProject(projectForm);
+      }
+
+      resetSectionEditor("projects", projects.length + 1);
       setStatus({
         type: "success",
-        message: "Project published successfully.",
+        message: editingProject
+          ? "Project updated successfully."
+          : "Project published successfully.",
       });
     } catch (error) {
       setStatus({
         type: "error",
-        message: error.message || "The upload could not be completed.",
+        message: error.message || "The project could not be saved.",
       });
     } finally {
       setIsSubmitting(false);
@@ -164,20 +214,37 @@ export const AdminPanel = ({
 
   const handleAchievementSubmit = async (event) => {
     event.preventDefault();
+    const editingAchievement =
+      editingState?.section === "achievements"
+        ? achievements.find((item) => item.id === editingState.entryId) ?? null
+        : null;
+
     setIsSubmitting(true);
-    setStatus({ type: "idle", message: "Publishing achievement..." });
+    setStatus({
+      type: "idle",
+      message: editingAchievement
+        ? "Saving achievement changes..."
+        : "Publishing achievement...",
+    });
 
     try {
-      await onAddAchievement(achievementForm);
-      setAchievementForm(initialAchievementForm);
+      if (editingAchievement) {
+        await onUpdateAchievement(editingAchievement, achievementForm);
+      } else {
+        await onAddAchievement(achievementForm);
+      }
+
+      resetSectionEditor("achievements");
       setStatus({
         type: "success",
-        message: "Achievement published successfully.",
+        message: editingAchievement
+          ? "Achievement updated successfully."
+          : "Achievement published successfully.",
       });
     } catch (error) {
       setStatus({
         type: "error",
-        message: error.message || "The achievement could not be published.",
+        message: error.message || "The achievement could not be saved.",
       });
     } finally {
       setIsSubmitting(false);
@@ -186,20 +253,37 @@ export const AdminPanel = ({
 
   const handleCertificateSubmit = async (event) => {
     event.preventDefault();
+    const editingCertificate =
+      editingState?.section === "certificates"
+        ? certificates.find((item) => item.id === editingState.entryId) ?? null
+        : null;
+
     setIsSubmitting(true);
-    setStatus({ type: "idle", message: "Publishing certificate..." });
+    setStatus({
+      type: "idle",
+      message: editingCertificate
+        ? "Saving certificate changes..."
+        : "Publishing certificate...",
+    });
 
     try {
-      await onAddCertificate(certificateForm);
-      setCertificateForm(initialCertificateForm);
+      if (editingCertificate) {
+        await onUpdateCertificate(editingCertificate, certificateForm);
+      } else {
+        await onAddCertificate(certificateForm);
+      }
+
+      resetSectionEditor("certificates");
       setStatus({
         type: "success",
-        message: "Certificate published successfully.",
+        message: editingCertificate
+          ? "Certificate updated successfully."
+          : "Certificate published successfully.",
       });
     } catch (error) {
       setStatus({
         type: "error",
-        message: error.message || "The certificate could not be published.",
+        message: error.message || "The certificate could not be saved.",
       });
     } finally {
       setIsSubmitting(false);
@@ -213,6 +297,11 @@ export const AdminPanel = ({
       : activeSection === "achievements"
         ? achievements
         : certificates;
+  const currentEditingEntry =
+    editingState?.section === activeSection
+      ? currentEntries.find((entry) => entry.id === editingState.entryId) ?? null
+      : null;
+  const isEditing = Boolean(currentEditingEntry);
 
   const handleDelete = async (entry) => {
     const contentLabel =
@@ -238,10 +327,28 @@ export const AdminPanel = ({
     try {
       if (activeSection === "projects") {
         await onDeleteProject(entry);
+        if (
+          editingState?.section === "projects" &&
+          editingState.entryId === entry.id
+        ) {
+          resetSectionEditor("projects", Math.max(projects.length, 1));
+        }
       } else if (activeSection === "achievements") {
         await onDeleteAchievement(entry);
+        if (
+          editingState?.section === "achievements" &&
+          editingState.entryId === entry.id
+        ) {
+          resetSectionEditor("achievements");
+        }
       } else {
         await onDeleteCertificate(entry);
+        if (
+          editingState?.section === "certificates" &&
+          editingState.entryId === entry.id
+        ) {
+          resetSectionEditor("certificates");
+        }
       }
 
       setStatus({
@@ -260,7 +367,51 @@ export const AdminPanel = ({
 
   const handleSectionChange = (sectionId) => {
     setActiveSection(sectionId);
+    resetSectionEditor(sectionId, projects.length + 1);
     setStatus(initialStatus);
+  };
+
+  const handleEdit = (entry) => {
+    if (activeSection === "projects") {
+      setProjectForm({
+        title: entry.title,
+        role: entry.role,
+        year: entry.year,
+        category: entry.category,
+        summary: entry.summary,
+        impact: entry.impact,
+        tools: entry.technologies.join(", "),
+        link: entry.link || "",
+        githubUrl: entry.githubUrl || "",
+        featured: Boolean(entry.featured),
+        displayOrder: String(getProjectDisplayOrder(entry, projects)),
+      });
+    } else if (activeSection === "achievements") {
+      setAchievementForm({
+        title: entry.title,
+        meta: entry.meta,
+        year: entry.year,
+        summary: entry.summary,
+        link: entry.link || "",
+      });
+    } else {
+      setCertificateForm({
+        title: entry.title,
+        issuer: entry.issuer,
+        year: entry.year,
+        credentialId: entry.credentialId || "",
+        link: entry.link || "",
+      });
+    }
+
+    setEditingState({
+      section: activeSection,
+      entryId: entry.id,
+    });
+    setStatus({
+      type: "idle",
+      message: `Editing "${entry.title}".`,
+    });
   };
 
   const counts = {
@@ -419,6 +570,37 @@ export const AdminPanel = ({
           ))}
         </div>
 
+        <div className="panel-heading">
+          <div>
+            <span className="panel-eyebrow">
+              {isEditing ? "Edit mode" : "Create mode"}
+            </span>
+            <h3>
+              {activeSection === "projects"
+                ? isEditing
+                  ? "Edit project"
+                  : "Add project"
+                : activeSection === "achievements"
+                  ? isEditing
+                    ? "Edit achievement"
+                    : "Add achievement"
+                  : isEditing
+                    ? "Edit certificate"
+                    : "Add certificate"}
+            </h3>
+          </div>
+
+          {isEditing ? (
+            <button
+              className="button-ghost"
+              type="button"
+              onClick={() => resetSectionEditor(activeSection, projects.length + 1)}
+            >
+              Cancel edit
+            </button>
+          ) : null}
+        </div>
+
         <p className="admin-copy">{currentSection?.description}</p>
 
         {activeSection === "projects" ? (
@@ -479,6 +661,46 @@ export const AdminPanel = ({
               </select>
             </div>
 
+            <div className="field-group">
+              <label htmlFor="project-display-order">Serial number</label>
+              <input
+                className="input-field"
+                id="project-display-order"
+                min="1"
+                name="displayOrder"
+                onChange={handleProjectFieldChange}
+                required
+                type="number"
+                value={projectForm.displayOrder}
+              />
+            </div>
+
+            <div className="field-group">
+              <label htmlFor="project-link">Project link</label>
+              <input
+                className="input-field"
+                id="project-link"
+                name="link"
+                onChange={handleProjectFieldChange}
+                placeholder="https://..."
+                type="url"
+                value={projectForm.link}
+              />
+            </div>
+
+            <div className="field-group full-span">
+              <label htmlFor="project-github-url">GitHub repo link</label>
+              <input
+                className="input-field"
+                id="project-github-url"
+                name="githubUrl"
+                onChange={handleProjectFieldChange}
+                placeholder="https://github.com/..."
+                type="url"
+                value={projectForm.githubUrl}
+              />
+            </div>
+
             <div className="field-group full-span">
               <label htmlFor="project-summary">Summary</label>
               <textarea
@@ -518,19 +740,6 @@ export const AdminPanel = ({
             </div>
 
             <div className="field-group full-span">
-              <label htmlFor="project-link">Project link</label>
-              <input
-                className="input-field"
-                id="project-link"
-                name="link"
-                onChange={handleProjectFieldChange}
-                placeholder="https://..."
-                type="url"
-                value={projectForm.link}
-              />
-            </div>
-
-            <div className="field-group full-span">
               <label className="checkbox-field" htmlFor="project-featured">
                 <input
                   checked={projectForm.featured}
@@ -545,7 +754,13 @@ export const AdminPanel = ({
 
             <div className="full-span action-row">
               <button className="button-primary" disabled={isSubmitting} type="submit">
-                {isSubmitting ? "Uploading..." : "Publish project"}
+                {isSubmitting
+                  ? isEditing
+                    ? "Saving..."
+                    : "Uploading..."
+                  : isEditing
+                    ? "Save project"
+                    : "Publish project"}
               </button>
               <button className="button-secondary" type="button" onClick={onSignOut}>
                 Sign out
@@ -624,7 +839,13 @@ export const AdminPanel = ({
 
             <div className="full-span action-row">
               <button className="button-primary" disabled={isSubmitting} type="submit">
-                {isSubmitting ? "Publishing..." : "Publish achievement"}
+                {isSubmitting
+                  ? isEditing
+                    ? "Saving..."
+                    : "Publishing..."
+                  : isEditing
+                    ? "Save achievement"
+                    : "Publish achievement"}
               </button>
               <button className="button-secondary" type="button" onClick={onSignOut}>
                 Sign out
@@ -702,7 +923,13 @@ export const AdminPanel = ({
 
             <div className="full-span action-row">
               <button className="button-primary" disabled={isSubmitting} type="submit">
-                {isSubmitting ? "Publishing..." : "Publish certificate"}
+                {isSubmitting
+                  ? isEditing
+                    ? "Saving..."
+                    : "Publishing..."
+                  : isEditing
+                    ? "Save certificate"
+                    : "Publish certificate"}
               </button>
               <button className="button-secondary" type="button" onClick={onSignOut}>
                 Sign out
@@ -714,7 +941,8 @@ export const AdminPanel = ({
         {activeSection === "projects" ? (
           <p className="form-note">
             Comma-separated technologies become the chips shown on each
-            project card.
+            project card. The serial number only controls order in the public
+            list and stays hidden on the card itself.
           </p>
         ) : null}
 
@@ -725,32 +953,53 @@ export const AdminPanel = ({
 
       <article className="admin-card glass-card">
         <div className="panel-heading">
-          <span className="panel-eyebrow">Current list</span>
-          <h3>{currentSection?.label}</h3>
+          <div>
+            <span className="panel-eyebrow">Current list</span>
+            <h3>{currentSection?.label}</h3>
+          </div>
+          {activeSection === "projects" ? (
+            <span className="status-pill">Hidden serial order</span>
+          ) : null}
         </div>
 
         {currentEntries.length ? (
           <div className="management-list">
             {currentEntries.map((entry) => (
               <div className="management-list-item" key={entry.id}>
-                <div>
-                  <strong>{entry.title}</strong>
-                  <span>
-                    {activeSection === "projects"
-                      ? `${entry.category} / ${entry.year}`
-                      : activeSection === "achievements"
-                        ? `${entry.meta} / ${entry.year}`
-                        : `${entry.issuer} / ${entry.year}`}
-                  </span>
+                <div className="management-meta">
+                  {activeSection === "projects" ? (
+                    <span className="management-order-badge">
+                      #{getProjectDisplayOrder(entry, projects)}
+                    </span>
+                  ) : null}
+                  <div>
+                    <strong>{entry.title}</strong>
+                    <span>
+                      {activeSection === "projects"
+                        ? `${entry.category} / ${entry.year}`
+                        : activeSection === "achievements"
+                          ? `${entry.meta} / ${entry.year}`
+                          : `${entry.issuer} / ${entry.year}`}
+                    </span>
+                  </div>
                 </div>
-                <button
-                  className="button-ghost danger-button"
-                  disabled={removingId === entry.id}
-                  type="button"
-                  onClick={() => handleDelete(entry)}
-                >
-                  {removingId === entry.id ? "Removing..." : "Remove"}
-                </button>
+                <div className="management-actions">
+                  <button
+                    className="button-ghost"
+                    type="button"
+                    onClick={() => handleEdit(entry)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="button-ghost danger-button"
+                    disabled={removingId === entry.id}
+                    type="button"
+                    onClick={() => handleDelete(entry)}
+                  >
+                    {removingId === entry.id ? "Removing..." : "Remove"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

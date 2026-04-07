@@ -8,6 +8,7 @@ export const AchievementCard = ({ achievement }) => {
     impact,
     technologies,
     link,
+    githubUrl,
     imageUrl,
   } = achievement;
 
@@ -51,15 +52,29 @@ export const AchievementCard = ({ achievement }) => {
           </div>
         </div>
 
-        {link ? (
-          <a
-            className="achievement-link"
-            href={link}
-            rel="noreferrer"
-            target="_blank"
-          >
-            View project
-          </a>
+        {link || githubUrl ? (
+          <div className="achievement-links">
+            {link ? (
+              <a
+                className="achievement-link"
+                href={link}
+                rel="noreferrer"
+                target="_blank"
+              >
+                View project
+              </a>
+            ) : null}
+            {githubUrl ? (
+              <a
+                className="achievement-link"
+                href={githubUrl}
+                rel="noreferrer"
+                target="_blank"
+              >
+                GitHub repo
+              </a>
+            ) : null}
+          </div>
         ) : (
           <span className="achievement-link">Case study available on request</span>
         )}

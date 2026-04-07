@@ -8,6 +8,8 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import {
   onAuthStateChanged,
@@ -24,6 +26,7 @@ const certificateCollectionName = "certificates";
 
 const mapProject = (documentSnapshot) => {
   const data = documentSnapshot.data();
+  const parsedDisplayOrder = Number.parseInt(data.displayOrder, 10);
 
   return {
     id: documentSnapshot.id,
@@ -35,9 +38,15 @@ const mapProject = (documentSnapshot) => {
     impact: data.impact || "",
     technologies: Array.isArray(data.technologies) ? data.technologies : [],
     link: data.link || "",
+    githubUrl: data.githubUrl || "",
     imageUrl: data.imageUrl || "",
     imagePath: data.imagePath || "",
     featured: Boolean(data.featured),
+    displayOrder:
+      Number.isInteger(parsedDisplayOrder) && parsedDisplayOrder > 0
+        ? parsedDisplayOrder
+        : null,
+    createdAtMs: data.createdAt?.toMillis?.() ?? 0,
   };
 };
 
@@ -164,8 +173,60 @@ const subscribeWithTimeout = ({
   };
 };
 
+const getProjectOrderValue = (project) =>
+  Number.isInteger(project.displayOrder) && project.displayOrder > 0
+    ? project.displayOrder
+    : Number.MAX_SAFE_INTEGER;
+
+const sortProjectsByDisplayOrder = (items) =>
+  [...items].sort((left, right) => {
+    const orderDifference = getProjectOrderValue(left) - getProjectOrderValue(right);
+
+    if (orderDifference !== 0) {
+      return orderDifference;
+    }
+
+    const createdAtDifference = (right.createdAtMs ?? 0) - (left.createdAtMs ?? 0);
+
+    if (createdAtDifference !== 0) {
+      return createdAtDifference;
+    }
+
+    return left.title.localeCompare(right.title);
+  });
+
+const parseProjectDisplayOrder = (value, maxValue) => {
+  const parsedValue = Number.parseInt(String(value).trim(), 10);
+
+  if (!Number.isInteger(parsedValue) || parsedValue < 1) {
+    throw new Error("Project serial number must be 1 or higher.");
+  }
+
+  return Math.min(parsedValue, maxValue);
+};
+
+const buildProjectOrderSequence = (items, targetProjectId, nextPosition) => {
+  const currentProjects = sortProjectsByDisplayOrder(items).filter(
+    (project) => project.id !== targetProjectId
+  );
+  const insertionIndex = Math.max(
+    0,
+    Math.min(nextPosition - 1, currentProjects.length)
+  );
+  const orderedProjects = [...currentProjects];
+
+  orderedProjects.splice(insertionIndex, 0, { id: targetProjectId });
+
+  return orderedProjects.map((project, index) => ({
+    id: project.id,
+    displayOrder: index + 1,
+  }));
+};
+
 export const usePortfolioData = () => {
-  const [projects, setProjects] = useState(hasFirebaseConfig ? [] : seedProjects);
+  const [projects, setProjects] = useState(
+    hasFirebaseConfig ? [] : sortProjectsByDisplayOrder(seedProjects)
+  );
   const [projectsLoading, setProjectsLoading] = useState(hasFirebaseConfig);
   const [projectError, setProjectError] = useState("");
   const [achievements, setAchievements] = useState([]);
@@ -215,12 +276,12 @@ export const usePortfolioData = () => {
     const unsubscribeProjects = subscribeWithTimeout({
       queryRef: projectQuery,
       onSuccess: (snapshot) => {
-        setProjects(snapshot.docs.map(mapProject));
+        setProjects(sortProjectsByDisplayOrder(snapshot.docs.map(mapProject)));
         setProjectError("");
         setProjectsLoading(false);
       },
       onTimeout: (error) => {
-        setProjects(seedProjects);
+        setProjects(sortProjectsByDisplayOrder(seedProjects));
         setProjectError(
           error.message ||
             "The live projects list is taking too long to respond, so the site is showing the local starter projects instead."
@@ -228,7 +289,7 @@ export const usePortfolioData = () => {
         setProjectsLoading(false);
       },
       onFailure: (error) => {
-        setProjects(seedProjects);
+        setProjects(sortProjectsByDisplayOrder(seedProjects));
         setProjectError(
           mapFirebaseError(
             error,
@@ -346,6 +407,10 @@ export const usePortfolioData = () => {
     try {
       await withTimeout(
         (async () => {
+          const desiredOrder = parseProjectDisplayOrder(
+            formValues.displayOrder,
+            projects.length + 1
+          );
           const title = formValues.title.trim();
           const role = formValues.role.trim();
           const year = formValues.year.trim();
@@ -353,12 +418,41 @@ export const usePortfolioData = () => {
           const summary = formValues.summary.trim();
           const impact = formValues.impact.trim();
           const link = formValues.link.trim();
+          const githubUrl = formValues.githubUrl.trim();
           const technologies = formValues.tools
             .split(",")
             .map((technology) => technology.trim())
             .filter(Boolean);
+          const projectRef = doc(collection(db, projectCollectionName));
+          const orderedProjects = buildProjectOrderSequence(
+            projects,
+            projectRef.id,
+            desiredOrder
+          );
+          const nextDisplayOrder =
+            orderedProjects.find((project) => project.id === projectRef.id)
+              ?.displayOrder ?? desiredOrder;
+          const batch = writeBatch(db);
 
-          await addDoc(collection(db, projectCollectionName), {
+          orderedProjects.forEach((project) => {
+            if (project.id === projectRef.id) {
+              return;
+            }
+
+            const existingProject = projects.find(
+              (currentProject) => currentProject.id === project.id
+            );
+
+            if (existingProject?.displayOrder === project.displayOrder) {
+              return;
+            }
+
+            batch.update(doc(db, projectCollectionName, project.id), {
+              displayOrder: project.displayOrder,
+            });
+          });
+
+          batch.set(projectRef, {
             title,
             role,
             year,
@@ -367,11 +461,16 @@ export const usePortfolioData = () => {
             impact,
             technologies,
             link,
+            githubUrl,
             imageUrl: "",
             imagePath: "",
             featured: Boolean(formValues.featured),
+            displayOrder: nextDisplayOrder,
             createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           });
+
+          await batch.commit();
         })(),
         "The project upload is taking too long. Check Firestore rules, network access, and whether Firebase services are fully set up."
       );
@@ -379,6 +478,83 @@ export const usePortfolioData = () => {
       throw mapFirebaseError(
         error,
         "The project upload is taking too long. Check Firestore rules, network access, and whether Firebase services are fully set up."
+      );
+    }
+  };
+
+  const updateProject = async (project, formValues) => {
+    requireAdmin("Admin authentication is required to update projects.");
+
+    try {
+      await withTimeout(
+        (async () => {
+          const desiredOrder = parseProjectDisplayOrder(
+            formValues.displayOrder,
+            Math.max(projects.length, 1)
+          );
+          const title = formValues.title.trim();
+          const role = formValues.role.trim();
+          const year = formValues.year.trim();
+          const category = formValues.category.trim();
+          const summary = formValues.summary.trim();
+          const impact = formValues.impact.trim();
+          const link = formValues.link.trim();
+          const githubUrl = formValues.githubUrl.trim();
+          const technologies = formValues.tools
+            .split(",")
+            .map((technology) => technology.trim())
+            .filter(Boolean);
+          const orderedProjects = buildProjectOrderSequence(
+            projects,
+            project.id,
+            desiredOrder
+          );
+          const nextDisplayOrder =
+            orderedProjects.find((entry) => entry.id === project.id)?.displayOrder ??
+            desiredOrder;
+          const batch = writeBatch(db);
+
+          orderedProjects.forEach((entry) => {
+            if (entry.id === project.id) {
+              return;
+            }
+
+            const existingProject = projects.find(
+              (currentProject) => currentProject.id === entry.id
+            );
+
+            if (existingProject?.displayOrder === entry.displayOrder) {
+              return;
+            }
+
+            batch.update(doc(db, projectCollectionName, entry.id), {
+              displayOrder: entry.displayOrder,
+            });
+          });
+
+          batch.update(doc(db, projectCollectionName, project.id), {
+            title,
+            role,
+            year,
+            category,
+            summary,
+            impact,
+            technologies,
+            link,
+            githubUrl,
+            featured: Boolean(formValues.featured),
+            displayOrder: nextDisplayOrder,
+            updatedAt: serverTimestamp(),
+          });
+
+          await batch.commit();
+        })(),
+        "Updating the project is taking too long. Check your Firebase connection and rules."
+      );
+    } catch (error) {
+      throw mapFirebaseError(
+        error,
+        "Updating the project is taking too long. Check your Firebase connection and rules."
       );
     }
   };
@@ -397,7 +573,26 @@ export const usePortfolioData = () => {
             }
           }
 
-          await deleteDoc(doc(db, projectCollectionName, project.id));
+          const batch = writeBatch(db);
+          const remainingProjects = sortProjectsByDisplayOrder(projects).filter(
+            (currentProject) => currentProject.id !== project.id
+          );
+
+          batch.delete(doc(db, projectCollectionName, project.id));
+
+          remainingProjects.forEach((currentProject, index) => {
+            const nextDisplayOrder = index + 1;
+
+            if (currentProject.displayOrder === nextDisplayOrder) {
+              return;
+            }
+
+            batch.update(doc(db, projectCollectionName, currentProject.id), {
+              displayOrder: nextDisplayOrder,
+            });
+          });
+
+          await batch.commit();
         })(),
         "Removing the project is taking too long. Check your Firebase connection and rules."
       );
@@ -448,6 +643,29 @@ export const usePortfolioData = () => {
     }
   };
 
+  const updateAchievement = async (achievement, formValues) => {
+    requireAdmin("Admin authentication is required to update achievements.");
+
+    try {
+      await withTimeout(
+        updateDoc(doc(db, achievementCollectionName, achievement.id), {
+          title: formValues.title.trim(),
+          meta: formValues.meta.trim(),
+          year: formValues.year.trim(),
+          summary: formValues.summary.trim(),
+          link: formValues.link.trim(),
+          updatedAt: serverTimestamp(),
+        }),
+        "Updating the achievement is taking too long. Check your Firebase connection and rules."
+      );
+    } catch (error) {
+      throw mapFirebaseError(
+        error,
+        "Updating the achievement is taking too long. Check your Firebase connection and rules."
+      );
+    }
+  };
+
   const addCertificate = async (formValues) => {
     requireAdmin("Admin authentication is required to publish certificates.");
 
@@ -487,6 +705,29 @@ export const usePortfolioData = () => {
     }
   };
 
+  const updateCertificate = async (certificate, formValues) => {
+    requireAdmin("Admin authentication is required to update certificates.");
+
+    try {
+      await withTimeout(
+        updateDoc(doc(db, certificateCollectionName, certificate.id), {
+          title: formValues.title.trim(),
+          issuer: formValues.issuer.trim(),
+          year: formValues.year.trim(),
+          credentialId: formValues.credentialId.trim(),
+          link: formValues.link.trim(),
+          updatedAt: serverTimestamp(),
+        }),
+        "Updating the certificate is taking too long. Check your Firebase connection and rules."
+      );
+    } catch (error) {
+      throw mapFirebaseError(
+        error,
+        "Updating the certificate is taking too long. Check your Firebase connection and rules."
+      );
+    }
+  };
+
   return {
     projects,
     projectsLoading,
@@ -504,10 +745,13 @@ export const usePortfolioData = () => {
     signIn,
     signOutAdmin,
     addProject,
+    updateProject,
     removeProject,
     addAchievement,
+    updateAchievement,
     removeAchievement,
     addCertificate,
+    updateCertificate,
     removeCertificate,
   };
 };
