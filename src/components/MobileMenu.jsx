@@ -21,17 +21,15 @@ export const MobileMenu = ({
       <div className="mobile-menu-panel">
         <button
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          className={`theme-toggle mobile-theme-toggle ${
+          aria-pressed={theme === "dark"}
+          className={`mobile-theme-slider ${
             theme === "dark" ? "is-dark" : "is-light"
           }`}
           type="button"
           onClick={onThemeToggle}
         >
-          <span className="theme-toggle-copy">
-            <span className="theme-toggle-label">Theme</span>
-            <span className="theme-toggle-value">{theme}</span>
-          </span>
-            <span className="theme-toggle-knob" aria-hidden="true" />
+          <span className="mobile-theme-slider-text">slide me</span>
+          <span className="mobile-theme-slider-knob" aria-hidden="true" />
         </button>
         <button
           className="button-ghost admin-nav-button mobile-admin-button"

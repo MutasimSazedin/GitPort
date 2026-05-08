@@ -56,6 +56,7 @@ function App() {
     isAdmin,
     authLoading,
     signIn,
+    resetAdminPassword,
     signOutAdmin,
     addProject,
     updateProject,
@@ -472,6 +473,7 @@ function App() {
               onUpdateCertificate={updateCertificate}
               onDeleteCertificate={removeCertificate}
               onSignIn={signIn}
+              onResetPassword={resetAdminPassword}
               onSignOut={signOutAdmin}
               user={user}
             />

@@ -99,6 +99,7 @@ export const AdminPanel = ({
   onDeleteAchievement,
   onDeleteCertificate,
   onSignIn,
+  onResetPassword,
   onSignOut,
   user,
 }) => {
@@ -112,6 +113,7 @@ export const AdminPanel = ({
   const [editingState, setEditingState] = useState(null);
   const [status, setStatus] = useState(initialStatus);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [removingId, setRemovingId] = useState("");
 
   const resetSectionEditor = (
@@ -170,6 +172,26 @@ export const AdminPanel = ({
         type: "error",
         message: error.message || "Unable to sign in with that account.",
       });
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setIsResettingPassword(true);
+    setStatus({ type: "idle", message: "Sending password reset email..." });
+
+    try {
+      await onResetPassword(credentials.email);
+      setStatus({
+        type: "success",
+        message: "Password reset email sent to the admin account.",
+      });
+    } catch (error) {
+      setStatus({
+        type: "error",
+        message: error.message || "Unable to send a password reset email.",
+      });
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -507,10 +529,18 @@ export const AdminPanel = ({
             <div className="full-span action-row">
               <button
                 className="button-primary"
-                disabled={authLoading || !isAdminConfigured}
+                disabled={authLoading || !isAdminConfigured || isResettingPassword}
                 type="submit"
               >
                 {authLoading ? "Checking session..." : "Sign in as admin"}
+              </button>
+              <button
+                className="button-secondary"
+                disabled={authLoading || !isAdminConfigured || isResettingPassword}
+                onClick={handlePasswordReset}
+                type="button"
+              >
+                {isResettingPassword ? "Sending reset..." : "Forgot password?"}
               </button>
             </div>
           </form>
